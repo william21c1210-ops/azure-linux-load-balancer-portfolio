@@ -1,0 +1,41 @@
+# SSH private keys and private certificate/key containers
+*.pem
+*.key
+*.ppk
+*.p12
+*.pfx
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Credentials and secrets
+.azure/
+secrets/
+credentials/
+credentials.json
+service-principal*.json
+*.secret
+*.secrets.*
+
+# Terraform files that can contain credentials or sensitive values
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+crash.log
+
+# Local-only notes
+local-notes/
+AGENTS.md
+
+# Local Ansible inventories
+ansible/inventory/hosts.lab.ini
+ansible/inventory/hosts.home.ini
+ansible/inventory/hosts.local.ini

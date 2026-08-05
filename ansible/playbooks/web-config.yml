@@ -1,0 +1,109 @@
+---
+- name: Configure Rocky Linux web backends
+  hosts: webservers
+  become: true
+  gather_facts: true
+  serial: 1
+  any_errors_fatal: true
+
+  vars:
+    web_titles:
+      vm-web01: "WEB01 - Zone 1"
+      vm-web02: "WEB02 - Zone 2"
+
+  pre_tasks:
+    - name: Confirm this host has a defined page title
+      ansible.builtin.assert:
+        that:
+          - inventory_hostname in web_titles
+        fail_msg: "No web page title is defined for {{ inventory_hostname }}"
+
+  tasks:
+    - name: Install required packages
+      ansible.builtin.dnf:
+        name:
+          - nginx
+          - firewalld
+          - python3-firewall
+        state: present
+
+    - name: Allow SSH and HTTP in the permanent public zone
+      ansible.posix.firewalld:
+        zone: public
+        service: "{{ item }}"
+        state: enabled
+        permanent: true
+        offline: true
+      loop:
+        - ssh
+        - http
+
+    - name: Bind the default interface to the permanent public zone
+      ansible.posix.firewalld:
+        zone: public
+        interface: "{{ ansible_facts['default_ipv4']['interface'] }}"
+        state: enabled
+        permanent: true
+        offline: true
+
+    - name: Start and enable firewalld
+      ansible.builtin.systemd_service:
+        name: firewalld
+        state: started
+        enabled: true
+
+    - name: Bind the default interface to the active public zone
+      ansible.posix.firewalld:
+        zone: public
+        interface: "{{ ansible_facts['default_ipv4']['interface'] }}"
+        state: enabled
+        permanent: true
+        immediate: true
+
+    - name: Allow SSH and HTTP in the active public zone
+      ansible.posix.firewalld:
+        zone: public
+        service: "{{ item }}"
+        state: enabled
+        permanent: true
+        immediate: true
+      loop:
+        - ssh
+        - http
+
+    - name: Deploy the server-specific web page
+      ansible.builtin.template:
+        src: ../templates/index.html.j2
+        dest: /usr/share/nginx/html/index.html
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Start and enable nginx
+      ansible.builtin.systemd_service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Validate the nginx configuration
+      ansible.builtin.command:
+        cmd: nginx -t
+      changed_when: false
+      when: not ansible_check_mode
+
+    - name: Check the local HTTP response
+      ansible.builtin.uri:
+        url: http://localhost/
+        return_content: true
+        status_code: 200
+      register: local_http
+      when: not ansible_check_mode
+
+    - name: Confirm this host serves its own page
+      ansible.builtin.assert:
+        that:
+          - web_titles[inventory_hostname] in local_http.content
+          - inventory_hostname in local_http.content
+        success_msg: "{{ inventory_hostname }} serves the expected page"
+        fail_msg: "{{ inventory_hostname }} returned unexpected content"
+      when: not ansible_check_mode

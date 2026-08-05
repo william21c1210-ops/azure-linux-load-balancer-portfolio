@@ -1,0 +1,21 @@
+---
+- name: Verify current web server baseline
+  hosts: webservers
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Collect service status
+      ansible.builtin.service_facts:
+
+    - name: Confirm nginx is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['nginx.service'].state == 'running'
+        success_msg: "nginx is running on {{ inventory_hostname }}"
+        fail_msg: "nginx is not running on {{ inventory_hostname }}"
+
+    - name: Confirm localhost HTTP returns 200
+      ansible.builtin.uri:
+        url: http://localhost/
+        status_code: 200
