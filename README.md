@@ -1,26 +1,26 @@
-# Azure Load Balancer 기반 Rocky Linux 웹 서버 이중화 및 장애 복구
+# Azure Load Balancer 기반 Rocky Linux 장애 격리 및 복구
 
-개별 Public IP가 없는 Rocky Linux VM 두 대를 Azure Load Balancer 뒤에 구성하고, HTTP 403·firewalld 차단·Nginx 중지 장애를 계층별로 검증한 뒤 Ansible로 멱등성과 수동 Drift 복구를 확인한 개인 프로젝트입니다.
-
-![Azure Load Balancer와 Rocky Linux 백엔드 토폴로지](docs/images/architecture-topology.jpg)
+개별 Public IP가 없는 Rocky Linux VM 두 대를 Azure Load Balancer 뒤에 구성하고, HTTP 사용자 경로와 SSH 기반 관리 경로를 분리했습니다. HTTP 403·firewalld HTTP 차단·Nginx 중지 상황에서 서비스 상태, TCP 80 수신, localhost 응답, firewalld, Load Balancer 경로를 나눠 확인했습니다. 이후 두 VM의 반복 설정과 Nginx 수동 복구에 Ansible을 적용했습니다.
 
 ## 한눈에 보기
 
 | 구분 | 내용 |
 | --- | --- |
-| 시작 배경 | DCT 과정의 첫 번째 미니 팀 프로젝트에서 맡지 않았던 Linux 서버와 네트워크를 직접 구성하고 진단하는 경험을 보완하고자 시작했습니다. |
-| 구조 | Azure Load Balancer 뒤에 개별 Public IP가 없는 Rocky Linux VM 두 대를 두고 Zone 1과 2에 나누어 배치했습니다. |
-| 통신 경로 | HTTP 사용자 경로와 Inbound NAT를 이용한 SSH·Ansible 관리 경로를 분리했습니다. |
-| 서비스·접근 제어 | Nginx, firewalld, Health Probe, NSG와 Inbound NAT를 함께 구성하고 상태를 점검했습니다. |
-| 구성 관리 | Ansible로 두 VM의 구성을 맞추고 멱등성과 Drift 복구를 검증했습니다. `serial: 1`로 한 대씩 순차 처리했습니다. |
+| 목표 | Linux 서버와 네트워크 경로를 직접 구성·검증하고 장애 원인을 계층별로 구분 |
+| 구조 | Azure Load Balancer + 개별 Public IP가 없는 Rocky Linux VM 두 대 |
+| 경로 | HTTP 사용자 경로 / Inbound NAT 기반 SSH 관리 경로 분리 |
+| 장애 검증 | HTTP 403 / firewalld HTTP 차단 / Nginx 중지 |
+| 구성·복구 | 두 VM의 반복 설정에 Ansible을 적용하고, 최종 `changed=0`과 Nginx Drift 수동 복구 확인 |
 
 실제 Public IP와 관리 Source IP는 공개하지 않으며, 실제 Inventory도 Git에서 제외합니다.
+
+![Azure Load Balancer와 Rocky Linux 백엔드 토폴로지](docs/images/architecture-topology.jpg)
 
 ## 핵심 결과
 
 - HTTP 403과 firewalld HTTP 차단을 각각 애플리케이션 계층과 호스트 방화벽 계층의 장애로 구분했습니다.
 - `vm-web02`의 Nginx를 중지하자 내부 HTTP가 실패했고, 단일 클라이언트에서 잠시 `REQUEST FAILED`가 나타난 뒤 WEB01만 응답했으며 Portal에서는 `vm-web02`가 `Down`으로 표시됐습니다.
-- 운영자가 동일한 Ansible Playbook을 수동 실행해 Drift를 복구했으며, Nginx 시작 Task만 `changed=1`이었습니다.
+- 같은 Ansible Playbook을 수동으로 실행해 Drift를 복구했고, Nginx 시작 Task만 `changed=1`이었습니다.
 - 복구 후 외부 응답에 WEB02가 다시 나타났고 Portal의 두 VM이 `Up`으로 돌아왔으며, 마지막 전체 재실행은 두 VM 모두 `changed=0`이었습니다.
 
 Portal의 50%·100%는 백엔드 건강도입니다. 실제 Zone 장애와 정확한 50:50 트래픽 분산은 검증하지 않았습니다.
@@ -34,9 +34,11 @@ Portal의 50%·100%는 백엔드 건강도입니다. 실제 Zone 장애와 정�
 
 ## 시작한 이유
 
-DCT 과정의 첫 번째 미니 팀 프로젝트에서 GitHub Actions와 Azure Functions를 이용한 자동 배포 흐름을 맡아 학습하고 발표했습니다. 협업과 자동 배포 흐름을 경험했지만, 담당 영역 밖의 서버와 네트워크를 처음부터 구성하고 진단하는 경험은 부족했습니다.
+DCT 과정에서 Azure와 자동 배포 흐름을 학습해 발표한 뒤, Linux 서버와 네트워크 경로를 직접 구성·검증하며 동작을 이해해보고자 이 프로젝트를 시작했습니다.
 
-이를 보완하려고 이 프로젝트를 시작했습니다. Azure는 실습 환경으로 사용하고 있으며, 핵심은 특정 서비스 사용법보다 Linux 서버와 네트워크가 어떻게 연결되는지 이해하고 직접 확인하는 데 있습니다. 특히 포트 흐름, 접근 제어, 상태 확인, 장애 발생 시의 진단과 복구 과정을 제 손으로 기록하는 것을 목표로 합니다.
+개별 Public IP가 없는 Rocky Linux VM 두 대를 Azure Load Balancer 뒤에 구성하고, HTTP 사용자 경로와 SSH 관리 경로를 분리했습니다. 서비스 상태, TCP 80 수신, localhost 응답, firewalld, Azure Load Balancer 경로를 계층별로 나눠 확인하며 장애 원인을 구분했습니다.
+
+DCT에서 배운 Ansible은 두 VM에 반복되는 설정을 같은 상태로 맞추고 Nginx 상태를 수동 복구하는 데 적용했습니다.
 
 ## 현재 구성
 
@@ -77,9 +79,9 @@ Portal의 장애 상태와 복구 후 상태를 각각 확인했지만 정확한
 
 ## 현재 상태
 
-구축·장애 시험·Ansible 멱등성 및 Drift 복구·운영 Runbook·Postmortem을 완료했습니다. 이 저장소는 검증을 마친 최종 트리만 담은 공개 제출용 스냅샷이며, 원본 전체 이력과 로컬 운영정보는 Private으로 보존합니다. 핵심 내용은 제출용 PDF 요약본으로 정리합니다.
+구축과 장애 시험, 복구 검증, Runbook·Postmortem 작성을 완료했습니다.
 
-정확한 50:50 분산, 실제 Availability Zone 장애 시험과 다중 Region 구성은 미검증 한계 및 선택 확장 항목으로 남깁니다.
+정확한 50:50 분산, 실제 Availability Zone 장애 시험과 다중 Region 구성은 미검증 범위로 남깁니다.
 
 ## 상세 문서와 증거 링크
 
