@@ -49,7 +49,7 @@ Control Node
 외부 감시는 저장소 루트에서 실행한다.
 
 ```bash
-cd ~/projects/azure-linux-load-balancer-lab
+cd /path/to/azure-linux-load-balancer-portfolio
 LB_IP='<LOAD_BALANCER_PUBLIC_IP>' \
   COUNT=60 \
   INTERVAL=2 \
@@ -64,7 +64,7 @@ LB_IP='<LOAD_BALANCER_PUBLIC_IP>' \
 모든 Ansible 명령은 `ansible/` 디렉터리에서 실행한다.
 
 ```bash
-cd ~/projects/azure-linux-load-balancer-lab/ansible
+cd /path/to/azure-linux-load-balancer-portfolio/ansible
 ansible --version
 ansible-inventory --graph
 ansible webservers -m ansible.builtin.ping
@@ -84,7 +84,7 @@ Baseline Playbook은 Nginx 실행 상태와 localhost HTTP 200만 확인한다. 
 
 ## 5. 증상별 진단
 
-다음 순서를 바꾸지 않고 영향 범위를 좁힌다.
+기본 확인 순서는 다음과 같다. 증상과 접근 가능 여부에 따라 필요한 대응 절차로 분기한다.
 
 1. **영향 범위:** 전체 서비스가 응답하지 않는지, WEB01 또는 WEB02 한 대만 보이지 않는지 확인한다.
 2. **외부 Load Balancer HTTP:** `monitor-lb-http.sh`의 시간별 응답과 `REQUEST_FAILED`를 확인한다.
@@ -118,7 +118,7 @@ sudo firewall-cmd --permanent --zone=public --list-all
 다른 Backend가 정상이고 복구 대상을 명확히 구분한 경우에만 한 대씩 적용한다.
 
 ```bash
-cd ~/projects/azure-linux-load-balancer-lab/ansible
+cd /path/to/azure-linux-load-balancer-portfolio/ansible
 ansible-playbook --syntax-check playbooks/web-config.yml
 ```
 
@@ -150,7 +150,7 @@ Nginx 실행 상태만 복구하는 상황에서 다른 패키지·방화벽·Te
 다음 명령은 읽기 전용 검사가 아니다. 두 Backend 중 Drift가 있는 항목을 즉시 원하는 상태로 변경하므로, 두 VM에 대한 변경 범위와 실행 승인을 확인한 경우에만 실행한다.
 
 ```bash
-cd ~/projects/azure-linux-load-balancer-lab/ansible
+cd /path/to/azure-linux-load-balancer-portfolio/ansible
 ansible-playbook --diff playbooks/web-config.yml
 ```
 

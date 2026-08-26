@@ -12,13 +12,13 @@
 | 장애 검증 | HTTP 403 / firewalld HTTP 차단 / Nginx 중지 |
 | 구성·복구 | 두 VM의 반복 설정에 Ansible을 적용하고, 최종 `changed=0`과 Nginx Drift 수동 복구 확인 |
 
-실제 Public IP와 관리 Source IP는 공개하지 않으며, 실제 Inventory도 Git에서 제외합니다.
+실제 Public IP, 관리 Source IP와 Inventory는 공개 저장소에서 제외하고, 공개 예제에는 Placeholder를 사용합니다.
 
 ![Azure Load Balancer와 Rocky Linux 백엔드 토폴로지](docs/images/architecture-topology.jpg)
 
 ## 핵심 결과
 
-- HTTP 403과 firewalld HTTP 차단을 각각 애플리케이션 계층과 호스트 방화벽 계층의 장애로 구분했습니다.
+- 파일 권한에 따른 HTTP 403과 firewalld의 HTTP 차단을 서로 다른 원인으로 구분했습니다.
 - `vm-web02`의 Nginx를 중지하자 내부 HTTP가 실패했고, 단일 클라이언트에서 잠시 `REQUEST FAILED`가 나타난 뒤 WEB01만 응답했으며 Portal에서는 `vm-web02`가 `Down`으로 표시됐습니다.
 - 같은 Ansible Playbook을 수동으로 실행해 Drift를 복구했고, Nginx 시작 Task만 `changed=1`이었습니다.
 - 복구 후 외부 응답에 WEB02가 다시 나타났고 Portal의 두 VM이 `Up`으로 돌아왔으며, 마지막 전체 재실행은 두 VM 모두 `changed=0`이었습니다.
@@ -50,8 +50,6 @@ DCT에서 배운 Ansible은 두 VM에 반복되는 설정을 같은 상태로 �
 | 관리 접속 | 접속 검증 | 기존 랩실 SSH 키를 유지한 채 집 WSL용 별도 ED25519 공개키를 두 VM에 추가하고, 집에서 프런트엔드 TCP 50001 → `vm-web01:22`, TCP 50002 → `vm-web02:22` 경로로 접속했습니다. |
 | 웹·장애 실험 | 동작 검증 | Load Balancer TCP 80 요청에서 두 백엔드의 응답을 확인하고, `vm-web01`의 HTTP 403·firewalld 차단과 `vm-web02`의 Nginx 중지·복구를 시험했습니다. |
 | Ansible | 구성·멱등성·Drift 복구 완료 | 두 VM에 웹 서버 구성을 적용하고 전체 재실행에서 `changed=0`을 확인했습니다. `vm-web02`의 Nginx Drift도 같은 Playbook으로 복구했습니다. |
-
-실제 공용 IP와 SSH 허용 원본 IP의 숫자 값은 공개 저장소에 남기지 않았습니다. 실제 Inventory는 Git에서 제외하고 공개용 예제에는 Placeholder만 사용합니다.
 
 ## 직접 확인한 결과
 
