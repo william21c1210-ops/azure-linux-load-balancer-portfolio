@@ -2,6 +2,12 @@
 
 개별 Public IP가 없는 Rocky Linux VM 두 대를 Azure Load Balancer 뒤에 구성하고, HTTP 사용자 경로와 SSH 기반 관리 경로를 분리했습니다. HTTP 403·firewalld HTTP 차단·Nginx 중지 상황에서 서비스 상태, TCP 80 수신, localhost 응답, firewalld, Load Balancer 경로를 나눠 확인했습니다. 이후 두 VM의 반복 설정과 Nginx 수동 복구에 Ansible을 적용했습니다.
 
+## Portfolio
+
+**[6-page Project Portfolio PDF 보기](portfolio/Project01_Azure_LB_Rocky_Linux_Troubleshooting.pdf)**
+
+[![Project 01 Portfolio Preview](portfolio/Project01_Portfolio_Preview.png)](portfolio/Project01_Azure_LB_Rocky_Linux_Troubleshooting.pdf)
+
 ## 한눈에 보기
 
 | 구분 | 내용 |
